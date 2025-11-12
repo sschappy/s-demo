@@ -27,7 +27,7 @@ add_library(counter_lib STATIC
 )
 target_include_directories(counter_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-
+set_source_files_properties(counter.i PROPERTIES CPLUSPLUS ON)
 
 swig_add_library(counter_jni
     TYPE SHARED

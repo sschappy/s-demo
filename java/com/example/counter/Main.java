@@ -1,14 +1,7 @@
-import com.example.counter.*;
+package com.example.counter;
 
 public class Main {
     static {
-        try {
-            // 加载本地库
-            System.loadLibrary("counter_jni");
-        } catch (UnsatisfiedLinkError e) {
-            System.err.println("无法加载本地库: " + e.getMessage());
-            System.exit(1);
-        }
     }
 
     public static void main(String[] args) {

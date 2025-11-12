@@ -1,6 +1,16 @@
 cmake_minimum_required(VERSION 3.12)
 project(CounterJava LANGUAGES CXX)
 
+if (MSVC)
+    add_compile_options("/utf-8")
+    add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
+    add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
+elseif (ANDROID)
+    add_compile_options(-finput-charset=UTF-8 -fexec-charset=UTF-8)
+else()
+    add_compile_options(-finput-charset=UTF-8 -fexec-charset=UTF-8)
+endif()
+
 set(CMAKE_CXX_STANDARD 11)
 
 # 查找必要的包

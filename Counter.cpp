@@ -1,11 +1,9 @@
 #include "Counter.hpp"
 
-// int Counter::addOne() { ++i; return 0; }
-// int Counter::subOne() { --i; return 0; }
-// int Counter::add(int k) { i += k; return 0; }
-// int Counter::sub(int k) { i -= k; return 0;}
-
-#include <iostream>
+int CalCulator::addOne() { ++i; return 0; }
+int CalCulator::subOne() { --i; return 0; }
+int CalCulator::add(int k) { i += k; return 0; }
+int CalCulator::sub(int k) { i -= k; return 0;}
 
 const char* getGreeting() {
     return "hello from c++ via SWIG!";

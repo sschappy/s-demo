@@ -25,10 +25,13 @@ include_directories(${JNI_INCLUDE_DIRS})
 set(SWIG_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 file(MAKE_DIRECTORY ${SWIG_OUTPUT_DIR})
 
-set(CMAKE_SWIG_OUTDIR ${SWIG_OUTPUT_DIR}/java)
+set(JAVA_PACKAGE "com.example.counter")
+string(REPLACE "." "/" JAVA_PACKAGE_DIR ${JAVA_PACKAGE})
+
+set(CMAKE_SWIG_OUTDIR ${SWIG_OUTPUT_DIR}/java/${JAVA_PACKAGE_DIR})
 set(SWIG_OUTFILE_DIR ${SWIG_OUTPUT_DIR}/cpp)
 
-set(CMAKE_SWIG_FLAGS -package com.example.counter)
+set(CMAKE_SWIG_FLAGS -package ${JAVA_PACKAGE})
 
 # C++ lib
 add_library(counter_lib STATIC

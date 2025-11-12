@@ -54,27 +54,52 @@ swig_link_libraries(counter_jni PRIVATE
 )
 
 find_program(JAVA_COMPILER javac)
-if (JAVA_COMPILER)
-    set(JAVA_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/java)
-    set(JAVA_CLASSES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/java_classes)
-    file(MAKE_DIRECTORY ${JAVA_CLASSES_DIR})
+find_program(JAVA_TOOL jar)
+if (JAVA_COMPILER AND JAVA_TOOL)
+    # 工具类 JAR 相关设置
+    set(UTILITY_JAR_FILE ${CMAKE_CURRENT_BINARY_DIR}/counter-utils.jar)
+    set(UTILITY_CLASSES_DIR ${CMAKE_CURRENT_BINARY_DIR}/utility_classes)
+    file(MAKE_DIRECTORY ${UTILITY_CLASSES_DIR})
 
-    set(JAVA_CLASS_PACKAGE_DIR ${JAVA_CLASSES_DIR}/${JAVA_PACKAGE_DIR})
-    file(MAKE_DIRECTORY ${JAVA_CLASS_PACKAGE_DIR})
-
-    add_custom_target(compile_java ALL
-        COMMAND ${CMAKE_COMMAND} -E echo "Running: ${JAVA_COMPILER} -cp \"${SWIG_OUTPUT_DIR}/java\" -d \"${JAVA_CLASSES_DIR}\" \"${JAVA_SOURCE_DIR}/Main.java\""
-        COMMAND ${JAVA_COMPILER} -cp "${SWIG_OUTPUT_DIR}/java" -d "${JAVA_CLASSES_DIR}" "${JAVA_SOURCE_DIR}/Main.java"
+    # 编译 SWIG 生成的 Java 文件（工具类）
+    add_custom_target(compile_utility_java ALL
+        COMMAND ${CMAKE_COMMAND} -E echo "Compiling SWIG utility Java files: ${JAVA_COMPILER} -d \"${UTILITY_CLASSES_DIR}\" \"${CMAKE_SWIG_OUTDIR}/*.java\""
+        COMMAND ${JAVA_COMPILER} -d "${UTILITY_CLASSES_DIR}" "${CMAKE_SWIG_OUTDIR}/*.java"
         DEPENDS counter_jni
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        COMMENT "Compiling Java main program"
+        COMMENT "Compiling SWIG-generated utility Java files"
     )
 
+    # 创建工具类 JAR 包（不包含 Main.java）
+    add_custom_target(create_utility_jar ALL
+        COMMAND ${CMAKE_COMMAND} -E echo "Creating utility JAR: ${JAVA_TOOL} cf \"${UTILITY_JAR_FILE}\" -C \"${UTILITY_CLASSES_DIR}\" ."
+        COMMAND ${JAVA_TOOL} cf "${UTILITY_JAR_FILE}" -C "${UTILITY_CLASSES_DIR}" .
+        DEPENDS compile_utility_java
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMENT "Creating utility JAR with SWIG classes only"
+    )
+
+    # 主程序相关设置（与工具类 JAR 分离）
+    set(JAVA_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/java)
+    set(MAIN_CLASSES_DIR ${CMAKE_CURRENT_BINARY_DIR}/main_classes)
+    # set(SWIG_JAR_FILE ${CMAKE_CURRENT_BINARY_DIR})
+    file(MAKE_DIRECTORY ${MAIN_CLASSES_DIR})
+
+    # 编译 Main.java，使用工具类 JAR 作为依赖
+    add_custom_target(compile_main_java ALL
+        COMMAND ${CMAKE_COMMAND} -E echo "Compiling Main.java with utility JAR: ${JAVA_COMPILER} -cp \"${UTILITY_JAR_FILE}\" -d \"${MAIN_CLASSES_DIR}\" \"${JAVA_SOURCE_DIR}/Main.java\""
+        COMMAND ${JAVA_COMPILER} -cp "${UTILITY_JAR_FILE}" -d "${MAIN_CLASSES_DIR}" "${JAVA_SOURCE_DIR}/Main.java"
+        DEPENDS create_utility_jar
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMENT "Compiling Main.java using utility JAR"
+    )
+
+    # 运行主程序（使用工具类 JAR 和本地库）
     add_custom_target(run_java
-        COMMAND ${CMAKE_COMMAND} -E echo "Running: ${Java_JAVA_EXECUTABLE} -cp \"${JAVA_CLASSES_DIR}\" -Djava.library.path=\"$<TARGET_FILE_DIR:counter_jni>\" Main"
-        COMMAND ${Java_JAVA_EXECUTABLE} -cp "${JAVA_CLASSES_DIR}" -D"java.library.path=$<TARGET_FILE_DIR:counter_jni>" Main
-        DEPENDS compile_java
-        WORKING_DIRECTORY ${JAVA_CLASSES_DIR}
+        COMMAND ${CMAKE_COMMAND} -E echo "Running Java program: ${Java_JAVA_EXECUTABLE} -cp \"${MAIN_CLASSES_DIR};${UTILITY_JAR_FILE}\" -Djava.library.path=\"$<TARGET_FILE_DIR:counter_jni>\" Main"
+        COMMAND ${Java_JAVA_EXECUTABLE} -cp "${MAIN_CLASSES_DIR};${UTILITY_JAR_FILE}" -D"java.library.path=$<TARGET_FILE_DIR:counter_jni>" Main
+        DEPENDS compile_main_java
+        WORKING_DIRECTORY ${MAIN_CLASSES_DIR}
         COMMENT "Running Java program"
     )
 else()

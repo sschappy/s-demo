@@ -52,3 +52,31 @@ swig_link_libraries(counter_jni PRIVATE
     counter_lib
     ${JNI_LIBRARIES}
 )
+
+find_program(JAVA_COMPILER javac)
+if (JAVA_COMPILER)
+    set(JAVA_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/java)
+    set(JAVA_CLASSES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/java_classes)
+    file(MAKE_DIRECTORY ${JAVA_CLASSES_DIR})
+
+    set(JAVA_CLASS_PACKAGE_DIR ${JAVA_CLASSES_DIR}/${JAVA_PACKAGE_DIR})
+    file(MAKE_DIRECTORY ${JAVA_CLASS_PACKAGE_DIR})
+
+    add_custom_target(compile_java ALL
+        COMMAND ${CMAKE_COMMAND} -E echo "Running: ${JAVA_COMPILER} -cp \"${SWIG_OUTPUT_DIR}/java\" -d \"${JAVA_CLASSES_DIR}\" \"${JAVA_SOURCE_DIR}/Main.java\""
+        COMMAND ${JAVA_COMPILER} -cp "${SWIG_OUTPUT_DIR}/java" -d "${JAVA_CLASSES_DIR}" "${JAVA_SOURCE_DIR}/Main.java"
+        DEPENDS counter_jni
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMENT "Compiling Java main program"
+    )
+
+    add_custom_target(run_java
+        COMMAND ${CMAKE_COMMAND} -E echo "Running: ${Java_JAVA_EXECUTABLE} -cp \"${JAVA_CLASSES_DIR}\" -Djava.library.path=\"$<TARGET_FILE_DIR:counter_jni>\" Main"
+        COMMAND ${Java_JAVA_EXECUTABLE} -cp "${JAVA_CLASSES_DIR}" -D"java.library.path=$<TARGET_FILE_DIR:counter_jni>" Main
+        DEPENDS compile_java
+        WORKING_DIRECTORY ${JAVA_CLASSES_DIR}
+        COMMENT "Running Java program"
+    )
+else()
+    message(WARNING "java compiler not found, skipping Java compilation")
+endif()
